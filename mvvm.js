@@ -60,3 +60,34 @@ class Subject {
   }
 }
 
+class mvvm{
+  constructor(option){
+    this.init(option)
+    observer(this._data)
+    this.compile(this.$el)
+  }
+  init(option){
+    this.$el = document.querySelector(option.el)
+    this._data = option.data
+  }
+  compile(node){
+    if (node.nodeType === 1){
+      node.childNodes.forEach((cnode)=>{
+        this.compile(cnode)
+      })
+    }
+    else if (node.nodeType === 3){
+      this.renderText(node)
+    }
+  }
+  renderText(node){
+    let reg = /{{(.+?)}}/g
+    let match
+    while (match = reg.exec(node.nodeValue)){
+      let raw = match[0]
+      let key = match[1].trim()
+      console.log(raw, this._data[key])
+      node.nodeValue = node.nodeValue.replace(raw, this._data[key])
+    }
+  }
+}
