@@ -1,47 +1,9 @@
-data = {
-  name: 'tan',
-  age: 18,
-  friends:{
-    dad: 'yi',
-    mom: 'rui'
-  }
-}
-
-function observer(data) {
-  if (!data && typeof data !== 'object') return
-  for (let key in data) {
-    let val = data[key]
-    Object.defineProperty(data, key, {
-      configurable: true,
-      enmerable: true,
-      get: function(){
-        console.log(`get ${key}`)
-        return val
-      },
-      set: function(newVal){
-        console.log(`set ${key} => ${newVal}`)
-        val = newVal
-      }
-    })
-    if (typeof val === 'object'){
-      observer(val)
-    }
-  }
-}
-
-observer(data)
-
-class Observer {
-  constructor(name){
-    this.name = name
-  }
-  update(){
-    console.log(`${this.name} update ...`)
-  }
-}
+id = 0
+currentObserver = null
 
 class Subject {
   constructor(){
+    this.id = id++
     this.observers = []
   }
   addObserver(observer){
@@ -53,10 +15,54 @@ class Subject {
       this.observers.splice(index, 1)
     }
   }
-  notify(){
+  notify(newVal, oldVal){
     this.observers.forEach((item)=>{
-      item.update()
+      item.update(newVal, oldVal)
     })
+  }
+}
+
+function observer(data) {
+  if (!data && typeof data !== 'object') return
+  for (let key in data) {
+    let val = data[key]
+    let subject = new Subject()
+    Object.defineProperty(data, key, {
+      configurable: true,
+      enmerable: true,
+      get: function(){
+        if (currentObserver){
+          subject.addObserver(currentObserver)
+        }
+        return val
+      },
+      set: function(newVal){
+        console.log(`set ${key} => ${newVal}`)
+        subject.notify(newVal, val)
+        val = newVal
+      }
+    })
+    if (typeof val === 'object'){
+      observer(val)
+    }
+  }
+}
+
+class Observer {
+  constructor(vm, key, cb){
+    this.vm = vm
+    this.key = key
+    this.cb = cb
+    this.value = this.getValue()
+  }
+  update(newVal, oldVal){
+    this.cb.bind(this)(newVal, oldVal)
+  }
+  getValue(){
+    currentObserver = this
+    var value = this.vm._data[this.key]
+    currentObserver = null
+    return value
   }
 }
 
@@ -86,8 +92,10 @@ class mvvm{
     while (match = reg.exec(node.nodeValue)){
       let raw = match[0]
       let key = match[1].trim()
-      console.log(raw, this._data[key])
       node.nodeValue = node.nodeValue.replace(raw, this._data[key])
+      new Observer(this, key, function(newVal, oldVal){
+        node.nodeValue = node.nodeValue.replace(oldVal, newVal)
+      })
     }
   }
 }
