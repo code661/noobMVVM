@@ -11,7 +11,7 @@
 <body>
   <div id='app'>
     <input v-model='name' type="text">
-    <h1>hello {{name}} your age {{ age }}</h1>
+    <h1 v-on:click='sayHello'>hello {{name}} your age {{ age }}</h1>
   </div>
   <script src="./mvvm.js"></script>
   <script>
@@ -20,6 +20,11 @@
       data: {
         name: 'tan',
         age: 18
+      },
+      methods: {
+        sayHello:function(){
+          console.log(this.$data.name + 'hello')
+        }
       }
     })
   </script>

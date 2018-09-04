@@ -37,7 +37,6 @@ function observer(data) {
         return val
       },
       set: function (newVal) {
-        console.log(`set ${key} => ${newVal}`)
         subject.notify(newVal, val)
         val = newVal
       }
@@ -60,7 +59,7 @@ class Observer {
   }
   getValue() {
     currentObserver = this
-    var value = this.vm._data[this.key]
+    var value = this.vm.$data[this.key]
     currentObserver = null
     return value
   }
@@ -69,6 +68,7 @@ class Observer {
 class Compile {
   constructor(vm) {
     this.vm = vm
+    this.$methods = vm.method
     this.node = vm.$el
     this.traverse(this.node)
   }
@@ -89,40 +89,69 @@ class Compile {
     while (match = reg.exec(node.nodeValue)) {
       let raw = match[0]
       let key = match[1].trim()
-      node.nodeValue = node.nodeValue.replace(raw, this.vm._data[key])
+      node.nodeValue = node.nodeValue.replace(raw, this.vm.$data[key])
       new Observer(this.vm, key, function (newVal, oldVal) {
         node.nodeValue = node.nodeValue.replace(oldVal, newVal)
       })
     }
   }
-  compileNode(node){
+  compileNode(node) {
     let attrs = [...node.attributes]
-    attrs.forEach((attr)=>{
-      let name = attr.name
-      let value = attr.value
-      if(this.isDirective(name)){
-        new Observer(this.vm, value, function(newVal, oldVal){
-          node.value = newVal
-        })
-        node.oninput = (e)=>{
-          this.vm._data[value] = e.target.value
-        }
+    attrs.forEach((attr) => {
+      if (this.isModelDirective(attr.name)) {
+        this.bindModel(node, attr.value)
+      } else if (this.isEventDirective(attr.name)) {
+        this.bindEventHandler(node, attr)
       }
     })
   }
-  isDirective(name){
-    return name === 'v-model' ? true : false
+  isModelDirective(attr) {
+    return attr === 'v-model'
+  }
+  bindModel(node, attr) {
+    new Observer(this.vm, attr, function (newVal, oldVal) {
+      node.value = newVal
+    })
+    node.oninput = (e) => {
+      this.vm.$data[attr] = e.target.value
+    }
+  }
+  bindEventHandler(node, attr) {
+    let eventType = attr.name.substr(5)
+    let methodName = attr.value
+    node.addEventListener(eventType, this.vm[methodName])
+  }
+  isEventDirective(attr) {
+    return attr.indexOf('v-on') > -1
   }
 }
 
 class mvvm {
   constructor(option) {
     this.init(option)
-    observer(this._data)
+    observer(this.$data)
     new Compile(this)
   }
   init(option) {
     this.$el = document.querySelector(option.el)
-    this._data = option.data
+    this.$data = option.data
+    this.$methods = option.methods
+
+    for (let key in this.$data) {
+      Object.defineProperty(this, key, {
+        enumerable: true,
+        configurable: true,
+        get: function () {
+          return this.$data[key]
+        },
+        set: function (newVal) {
+          this.$data[key] = newVal
+        }
+      })
+    }
+
+    for (let method in this.$methods) {
+      this[method] = this.$methods[method].bind(this)
+    }
   }
 }
