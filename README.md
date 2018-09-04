@@ -64,7 +64,7 @@ Observer 是构造函数，new Observer() 创建一个观察者对象，该对�
 
 [写一个简单的发布订阅模式](https://github.com/code661/noobMVVM/commit/723f8177372804265ab0710a729138080d04bdb2?diff=unified)
 
-# 先实现单向数据绑定
+## 先实现单向数据绑定
 结合之前讲观察者模式和数据监听，思路：
 
 1. 主题(subject)是什么？
@@ -75,3 +75,8 @@ Observer 是构造函数，new Observer() 创建一个观察者对象，该对�
 上面的例子中，主题应该是data的 name 属性，观察者是视图里的{{name}}，当一开始执行mvvm初始化(根据 el 解析模板发现{{name}})的时候订阅主题，当data.name发生改变的时候，通知观察者更新内容。 我们可以在一开始监控 data.name （Object.defineProperty(data, 'name', {...})），当用户修改 data.name 的时候调用主题的 subject.notify。
 
 ## 双向数据绑定
+
+解析模板字符传中的 `v-model` 指令，对有该指令的 DOM 节点进行处理。
+1. 增加新的观察者
+2. 给该 DOM 节点增加事件绑定程序，监听 `input` 事件，在触发时将输入框中的值复制到 vm 实例数据中
+
